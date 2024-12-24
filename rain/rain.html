@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rain1</title>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+
+
+    function getCubeMapTexture (path) {
+      // no envmap
+      if (!path) return Promise.resolve({ envMap: null });
+
+      return new Promise((resolve, reject) => {
+
+        new THREE.RGBELoader()
+          .setDataType(THREE.UnsignedByteType)
+          .load(path, (texture) => {
+
+            const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+            pmremGenerator.dispose();
+
+            resolve({ envMap });
+
+          }, undefined, reject);
+
+      });
+
+    }
+
+
+
+    // 创建场景、相机和渲染器
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    // 设置背景颜色
+    scene.background = new THREE.Color(0xeeeeee); // 设置为浅灰色
+    // 添加光源
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // 环境光
+    scene.add(ambientLight);
+
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5); // 平行光
+    directionalLight.position.set(1, 1, 1).normalize();
+    scene.add(directionalLight);
+
+    // 创建地平面几何体 (宽度: 10, 高度: 10)
+    const geometry = new THREE.BoxGeometry(1000, 5, 1000);
+    // 创建材质
+    const material = new THREE.MeshBasicMaterial({ color: 0x999999, side: THREE.DoubleSide });  // 材质设置为双面显示
+
+    // 创建网格对象
+    const plane = new THREE.Mesh(geometry, material);
+
+    // 旋转地平面，使其平行于地面
+
+    // 将地平面添加到场景中
+    // scene.add(plane);
+
+    var pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+    getCubeMapTexture("/007.hdr").then(({ envMap }) => {
+      scene.environment = envMap;
+      scene.background = envMap;
+    });
+
+    // 设置相机位置
+    camera.position.z = 500;
+    camera.position.y = 500;
+
+    // 添加OrbitControls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; // 启用阻尼（平滑效果）
+    controls.dampingFactor = 0.25;
+    controls.enableZoom = true; // 启用缩放
+
+    // 载入雨滴纹理
+    const textureLoader = new THREE.TextureLoader();
+    const rainTexture = textureLoader.load('/rain4.png');
+
+    // 创建一个简单的几何体来表示雨滴（用平面几何体代替雨滴模型）
+    const rainGeometry = new THREE.PlaneGeometry(20, 30);  // 可根据需要调整雨滴的大小
+    const rainMaterial = new THREE.MeshBasicMaterial({
+      map: rainTexture,
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false,  // 防止深度冲突
+      side: THREE.DoubleSide  // 设置正反面都可见
+    });
+    const rainCount = 5000;
+    // 使用 InstancedMesh 优化性能
+    const rainInstancedMesh = new THREE.InstancedMesh(rainGeometry, rainMaterial, rainCount);
+    rainInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);  // 标明矩阵会动态更新
+
+    const dummy = new THREE.Object3D();
+    const xRange = [-2501.748291015625, 2371.517822265625];
+    const yRange = [0, 2750];
+    const zRange = [-2603.52197265625, 2255.21728515625];
+
+    // 生成随机数函数
+    const getRandomX = () => Math.random() * (xRange[1] - xRange[0]) + xRange[0];
+    const getRandomY = () => Math.random() * (yRange[1] - yRange[0]) + yRange[0];
+    const getRandomZ = () => Math.random() * (zRange[1] - zRange[0]) + zRange[0];
+
+    // 随机分布雨滴的初始位置
+    for (let i = 0; i < rainCount; i++) {
+      const x = getRandomX(); // X轴位置
+      const y = getRandomY(); // Y轴位置
+      const z = getRandomZ(); // Z轴位置
+
+      dummy.position.set(x, y, z);
+      dummy.rotation.set(0, 0, 0);  // 可根据需求调整旋转
+      dummy.updateMatrix();  // 更新实例的矩阵
+      rainInstancedMesh.setMatrixAt(i, dummy.matrix);
+    }
+
+    scene.add(rainInstancedMesh);
+
+    // 动态更新 uTime 实现动画效果
+    const clock = new THREE.Clock();
+
+    // 动画循环
+    function animate () {
+      requestAnimationFrame(animate);
+
+      // 更新每个雨滴的位置
+      for (let i = 0; i < rainCount; i++) {
+        rainInstancedMesh.getMatrixAt(i, dummy.matrix);
+        dummy.position.setFromMatrixPosition(dummy.matrix);
+        // 雨滴下落
+        dummy.position.y -= 20.0;
+        if (dummy.position.y < -100) {
+          // 重置 Y 轴位置
+          dummy.position.y = getRandomY();
+        }
+        // 确保转换到世界坐标系
+        // dummy.updateWorldMatrix(true, true);  // 更新到世界坐标系
+        dummy.updateMatrix();  // 更新矩阵
+        rainInstancedMesh.setMatrixAt(i, dummy.matrix);
+      }
+      rainInstancedMesh.instanceMatrix.needsUpdate = true;
+      controls.update(); // 更新控制器
+      renderer.render(scene, camera);
+    }
+
+    // 启动动画
+    animate();
+
+    // 处理窗口大小调整
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+  </script>
+</body>
+
+</html>
