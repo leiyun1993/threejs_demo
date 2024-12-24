@@ -55,7 +55,7 @@ const rainInstancedMesh = new THREE.InstancedMesh(rainGeometry, rainMaterial, ra
 - **雨滴下落速度**:
     - 通过修改 `dummy.position.y -= 20.0;` 这行代码，您可以调整雨滴下落的速度。
 
- ![image](https://github.com/leiyun1993/threejs_demo/raw/master/screenshot/image1.png)
+ ![image](https://github.com/leiyun1993/threejs_demo/raw/main/screenshot/image1.png)
 
  ## 2、THREE.Points
 ### 核心代码
@@ -93,4 +93,4 @@ const rain = new THREE.Points(rainGeometry, rainMaterial);
 - **雨滴下落速度**:
     - 通过修改 `positions[i * 3 + 1] -= 20.0;` 这行代码，您可以调整雨滴下落的速度。
 
- ![image](https://github.com/leiyun1993/threejs_demo/raw/master/screenshot/image2.png)
+ ![image](https://github.com/leiyun1993/threejs_demo/raw/main/screenshot/image2.png)
