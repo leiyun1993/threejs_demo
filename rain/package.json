@@ -1,0 +1,15 @@
+{
+  "name": "threejs-rain-demo",
+  "version": "1.0.0",
+  "description": "threejs rain demo",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server ./ -p 8080"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  },
+  "devDependencies": {},
+  "author": "",
+  "license": "MIT"
+}

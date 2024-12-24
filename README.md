@@ -94,3 +94,15 @@ const rain = new THREE.Points(rainGeometry, rainMaterial);
     - 通过修改 `positions[i * 3 + 1] -= 20.0;` 这行代码，您可以调整雨滴下落的速度。
 
  ![image](https://github.com/leiyun1993/threejs_demo/raw/main/screenshot/image2.png)
+
+ ### 启动方式
+
+ ```
+ npm install
+
+ npm start
+
+ http://127.0.0.1:8080/rain.html	//方式1
+
+ http://127.0.0.1:8080/rain2.html //方式2
+ ```
